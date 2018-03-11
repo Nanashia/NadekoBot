@@ -31,6 +31,8 @@ namespace NadekoBot.Modules.Administration.Services
         private readonly ProtectionService _prot;
         private readonly GuildTimezoneService _tz;
 
+        private readonly ConcurrentDictionary<ulong, long> pending = new ConcurrentDictionary<ulong, long>();
+
         public LogCommandService(DiscordSocketClient client, NadekoStrings strings,
             NadekoBot bot, DbService db, MuteService mute, ProtectionService prot, GuildTimezoneService tz)
         {
@@ -70,6 +72,36 @@ namespace NadekoBot.Modules.Administration.Services
                     return Task.CompletedTask;
                 })).ConfigureAwait(false);
             }, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
+
+            _client.MessageReceived += (SocketMessage msg) =>
+            {
+                if(msg.Embeds.Count >= 1)
+                {
+                    return CmdHandler_OnMessageNoTrigger(msg);
+                } else
+                {
+                    pending.TryAdd(msg.Id, 0);
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(2 * 1000);
+                        long a;
+                        pending.TryRemove(msg.Id, out a);
+                    });
+                }
+                return Task.CompletedTask;
+            };
+
+            _client.MessageUpdated += (Cacheable<IMessage, ulong> imsg, SocketMessage msg, ISocketMessageChannel ismc) =>
+            {
+                long v;
+                if(pending.TryGetValue(msg.Id, out v))
+                {
+                    pending.TryRemove(msg.Id, out v);
+                    return CmdHandler_OnMessageNoTrigger(msg);
+                }
+
+                return Task.CompletedTask;
+            };
 
             //_client.MessageReceived += _client_MessageReceived;
             _client.MessageUpdated += _client_MessageUpdated;
@@ -113,6 +145,69 @@ namespace NadekoBot.Modules.Administration.Services
                 uow.Complete();
             }
             return removed > 0;
+        }
+
+        private Task CmdHandler_OnMessageNoTrigger(IMessage imsg)
+        {
+            var msg = imsg as SocketUserMessage;
+            if (msg == null || msg.Author.IsBot)
+                return Task.CompletedTask;
+
+            var channel = imsg.Channel as ITextChannel;
+            if (channel == null)
+                return Task.CompletedTask;
+
+            if (!channel.Topic.Contains("CROSSPOST"))
+            {
+                return Task.CompletedTask;
+            }
+
+            var _ = Task.Run(async () =>
+            {
+                try
+                {
+                    if (imsg.Content.StartsWith("delete "))
+                    {
+                        Console.WriteLine("delete {0}", imsg.Content);
+
+                        string url = imsg.Content.Substring("delete ".Length);
+                        await Mstdn.Instance.delete(url);
+                        await imsg.DeleteAsync();
+                    }
+                    else
+                    {
+                        Console.WriteLine("delete {0} {1}", imsg.Content, imsg.Embeds.Count);
+
+                        foreach (var embed in imsg.Embeds)
+                        {
+                            string text = embed.Author + "\n" + embed.Description + "\n" + embed.Url;
+                            Mastonet.Entities.Status status = null;
+                            if (embed.Image.HasValue)
+                            {
+                                status = await Mstdn.Instance.post(text, embed.Image.Value.Url);
+                            }
+                            else if (embed.Thumbnail.HasValue)
+                            {
+                                status = await Mstdn.Instance.post(text, embed.Thumbnail.Value.Url);
+                            }
+
+                            if (status != null) {
+                                var eb = new EmbedBuilder()
+                                    .WithOkColor()
+                                    .WithTitle("Posted " + status.Url)
+                                    .WithUrl(status.Url);
+
+                                await imsg.Channel.EmbedAsync(eb).ConfigureAwait(false);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogManager.GetCurrentClassLogger().Warn(ex);
+                }
+            });
+            return Task.CompletedTask;
         }
 
         private string GetText(IGuild guild, string key, params object[] replacements) =>

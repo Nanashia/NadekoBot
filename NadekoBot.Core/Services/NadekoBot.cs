@@ -30,6 +30,7 @@ namespace NadekoBot
 
         public BotCredentials Credentials { get; }
         public DiscordSocketClient Client { get; }
+    //    public SocketUser GetUser(string username, string discriminator);
         public CommandService CommandService { get; }
 
         private readonly DbService _db;
