@@ -180,7 +180,7 @@ namespace NadekoBot.Modules.Administration.Services
 
                         foreach (var embed in imsg.Embeds)
                         {
-                            string text = embed.Author + "\n" + embed.Description + "\n" + embed.Url;
+                            string text = embed.Author + "\n" + embed.Title + "\n" + embed.Description + "\n" + embed.Url;
                             Mastonet.Entities.Status status = null;
                             if (embed.Image.HasValue)
                             {

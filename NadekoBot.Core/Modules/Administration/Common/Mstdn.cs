@@ -53,7 +53,7 @@ namespace NadekoBot.Modules.Administration.Services
                 var attachment = await client.UploadMedia(stream);
                 Console.WriteLine("attachment {0}", attachment);
                 return await client.PostStatus(content, Visibility.Public, mediaIds: new[] { attachment.Id });
-            } catch(Exception e)
+            } catch(Exception)
             {
                 throw;
             }
