@@ -180,8 +180,8 @@ namespace NadekoBot.Modules.Administration.Services
 
                         foreach (var embed in imsg.Embeds)
                         {
-                            string[] texts = new string[] { embed.Author.ToString(), embed.Title, embed.Description, embed.Url, "from #" + channel.Name };
-                            string text = String.Join('\n', texts.Where(s => String.IsNullOrWhiteSpace(s)));
+                            string[] texts = new string[] { embed.Author.ToString(), embed.Title, embed.Description, embed.Url + " from #" + channel.Name };
+                            string text = String.Join('\n', texts.Where(s => !String.IsNullOrWhiteSpace(s)));
                             text = text.Replace("@", "＠");
                             Mastonet.Entities.Status status = null;
                             if (embed.Image.HasValue)
