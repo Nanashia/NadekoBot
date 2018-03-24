@@ -83,7 +83,7 @@ namespace NadekoBot.Modules.Administration.Services
                     pending.TryAdd(msg.Id, 0);
                     Task.Run(async () =>
                     {
-                        await Task.Delay(2 * 1000);
+                        await Task.Delay(4 * 1000);
                         long a;
                         pending.TryRemove(msg.Id, out a);
                     });
@@ -180,7 +180,9 @@ namespace NadekoBot.Modules.Administration.Services
 
                         foreach (var embed in imsg.Embeds)
                         {
-                            string text = embed.Author + "\n" + embed.Title + "\n" + embed.Description + "\n" + embed.Url;
+                            string[] texts = new string[] { embed.Author.ToString(), embed.Title, embed.Description, embed.Url, "from #" + channel.Name };
+                            string text = String.Join('\n', texts.Where(s => String.IsNullOrWhiteSpace(s)));
+                            text = text.Replace("@", "＠");
                             Mastonet.Entities.Status status = null;
                             if (embed.Image.HasValue)
                             {
