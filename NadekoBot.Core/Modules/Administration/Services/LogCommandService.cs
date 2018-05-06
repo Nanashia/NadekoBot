@@ -150,7 +150,7 @@ namespace NadekoBot.Modules.Administration.Services
         private Task CmdHandler_OnMessageNoTrigger(IMessage imsg)
         {
             var msg = imsg as SocketUserMessage;
-            if (msg == null || msg.Author.IsBot)
+            if (msg == null)
                 return Task.CompletedTask;
 
             var channel = imsg.Channel as ITextChannel;
