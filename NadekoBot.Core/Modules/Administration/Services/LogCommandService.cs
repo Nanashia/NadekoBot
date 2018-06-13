@@ -83,7 +83,7 @@ namespace NadekoBot.Modules.Administration.Services
                     pending.TryAdd(msg.Id, 0);
                     Task.Run(async () =>
                     {
-                        await Task.Delay(4 * 1000);
+                        await Task.Delay(10 * 1000);
                         long a;
                         pending.TryRemove(msg.Id, out a);
                     });
@@ -171,7 +171,7 @@ namespace NadekoBot.Modules.Administration.Services
                         Console.WriteLine("delete {0}", imsg.Content);
 
                         string url = imsg.Content.Substring("delete ".Length);
-                        await Mstdn.Instance.delete(url);
+                        await Mstdn.Instance.Value.delete(url);
                         await imsg.DeleteAsync();
                     }
                     else
@@ -186,11 +186,11 @@ namespace NadekoBot.Modules.Administration.Services
                             Mastonet.Entities.Status status = null;
                             if (embed.Image.HasValue)
                             {
-                                status = await Mstdn.Instance.post(text, embed.Image.Value.Url);
+                                status = await Mstdn.Instance.Value.post(text, embed.Image.Value.Url);
                             }
                             else if (embed.Thumbnail.HasValue)
                             {
-                                status = await Mstdn.Instance.post(text, embed.Thumbnail.Value.Url);
+                                status = await Mstdn.Instance.Value.post(text, embed.Thumbnail.Value.Url);
                             }
 
                             if (status != null) {

@@ -12,26 +12,13 @@ namespace NadekoBot.Modules.Administration.Services
     {
         MastodonClient client;
         
-
-        private static Mstdn instance;
-        public static Mstdn Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = new Mstdn();
-                }
-                return instance;
-            }
-        }
+        public static Lazy<Mstdn> Instance = new Lazy<Mstdn>(true);
 
         public Mstdn()
         {
             var appregister = new Mastonet.Entities.AppRegistration
             {
                 Instance = "mstdn.kemono-friends.info",
-               
             };
 
             var auth = new Mastonet.Entities.Auth
