@@ -75,10 +75,11 @@ namespace NadekoBot.Modules.Administration.Services
 
             _client.MessageReceived += (SocketMessage msg) =>
             {
-                if(msg.Embeds.Count >= 1)
+                if (msg.Embeds.Count >= 1)
                 {
                     return CmdHandler_OnMessageNoTrigger(msg);
-                } else
+                }
+                else
                 {
                     pending.TryAdd(msg.Id, 0);
                     Task.Run(async () =>
@@ -94,7 +95,7 @@ namespace NadekoBot.Modules.Administration.Services
             _client.MessageUpdated += (Cacheable<IMessage, ulong> imsg, SocketMessage msg, ISocketMessageChannel ismc) =>
             {
                 long v;
-                if(pending.TryGetValue(msg.Id, out v))
+                if (pending.TryGetValue(msg.Id, out v))
                 {
                     pending.TryRemove(msg.Id, out v);
                     return CmdHandler_OnMessageNoTrigger(msg);
@@ -157,16 +158,54 @@ namespace NadekoBot.Modules.Administration.Services
             if (channel == null)
                 return Task.CompletedTask;
 
-            if (!channel.Topic.Contains("CROSSPOST"))
+            const string key = "CROSSPOST";
+            if (!channel.Topic.Contains(key))
             {
                 return Task.CompletedTask;
+            }
+
+            var p1 = channel.Topic.IndexOf(key + "{");
+            string[] p = new string[0] { };
+            if (p1 != -1)
+            {
+                p1 += key.Length + 1;
+                var p2 = channel.Topic.IndexOf("}", p1);
+                if (p2 != 0)
+                {
+                    p = channel.Topic.Substring(p1, p2 - p1).Split(";");
+                }
             }
 
             var _ = Task.Run(async () =>
             {
                 try
                 {
-                    if (imsg.Content.StartsWith("delete "))
+                    if (0 < p.Length && imsg.Author.Username.StartsWith("[" + p[0] + "]"))
+                    {
+                        var lines = imsg.Content.Split("}").ToList();
+                        string spoiler = null;
+                        if (1 < lines.Count && lines[0].StartsWith("CW{"))
+                        {
+                            spoiler = lines[0].Substring("CW{".Length);
+                            lines.RemoveAt(0);
+                        }
+
+                        var text = String.Join(Environment.NewLine, lines).Replace("@", "＠");
+
+                        Console.WriteLine("post " + text + " cw:" + spoiler);
+                        var status = await Mstdn.Instance.Value.Post(text, spoiler);
+                        if (status != null)
+                        {
+                            var eb = new EmbedBuilder()
+                                .WithOkColor()
+                                .WithTitle("Posted " + status.Url)
+                                .WithUrl(status.Url);
+
+                            await imsg.Channel.EmbedAsync(eb).ConfigureAwait(false);
+                        }
+
+                    }
+                    else if (imsg.Content.StartsWith("delete "))
                     {
                         Console.WriteLine("delete {0}", imsg.Content);
 
@@ -176,7 +215,7 @@ namespace NadekoBot.Modules.Administration.Services
                     }
                     else
                     {
-                        Console.WriteLine("delete {0} {1}", imsg.Content, imsg.Embeds.Count);
+                        Console.WriteLine("content {0} {1}", imsg.Content, imsg.Embeds.Count);
 
                         foreach (var embed in imsg.Embeds)
                         {
@@ -193,7 +232,8 @@ namespace NadekoBot.Modules.Administration.Services
                                 status = await Mstdn.Instance.Value.post(text, embed.Thumbnail.Value.Url);
                             }
 
-                            if (status != null) {
+                            if (status != null)
+                            {
                                 var eb = new EmbedBuilder()
                                     .WithOkColor()
                                     .WithTitle("Posted " + status.Url)

@@ -11,7 +11,7 @@ namespace NadekoBot.Modules.Administration.Services
     public class Mstdn
     {
         MastodonClient client;
-        
+
         public static Lazy<Mstdn> Instance = new Lazy<Mstdn>(true);
 
         public Mstdn()
@@ -29,6 +29,18 @@ namespace NadekoBot.Modules.Administration.Services
             client = new MastodonClient(appregister, auth);
         }
 
+        public async Task<Mastonet.Entities.Status> Post(string content, string cw = null)
+        {
+            try
+            {
+                return await client.PostStatus(content, Visibility.Public, spoilerText: cw);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public async Task<Mastonet.Entities.Status> post(string content, string url)
         {
             try
@@ -40,7 +52,8 @@ namespace NadekoBot.Modules.Administration.Services
                 var attachment = await client.UploadMedia(stream);
                 Console.WriteLine("attachment {0}", attachment);
                 return await client.PostStatus(content, Visibility.Public, mediaIds: new[] { attachment.Id });
-            } catch(Exception)
+            }
+            catch (Exception)
             {
                 throw;
             }
@@ -49,10 +62,11 @@ namespace NadekoBot.Modules.Administration.Services
         public async Task delete(string text)
         {
             long id;
-            if(long.TryParse(text, out id))
+            if (long.TryParse(text, out id))
             {
                 await client.DeleteStatus(id);
-            } else if(long.TryParse(text.Substring(text.LastIndexOf("/") + 1), out id))
+            }
+            else if (long.TryParse(text.Substring(text.LastIndexOf("/") + 1), out id))
             {
                 await client.DeleteStatus(id);
             }
